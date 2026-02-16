@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeonScan | Advanced Port Scanner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-glob"></div>
+    <div class="container">
+        <header>
+            <h1>NeonScan <span class="badge">v2.0</span></h1>
+            <p>Advanced Threaded Port Scanner</p>
+        </header>
+
+        <main>
+            <section class="glass-card setup-card">
+                <h2><span class="icon">⚙️</span> Configuration</h2>
+                <form id="scanForm">
+                    <div class="form-group">
+                        <label for="target">Target Host</label>
+                        <input type="text" id="target" name="target" placeholder="e.g., localhost, example.com" required value="localhost">
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="start_port">Start Port</label>
+                            <input type="number" id="start_port" name="start_port" value="1" min="1" max="65535">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_port">End Port</label>
+                            <input type="number" id="end_port" name="end_port" value="1024" min="1" max="65535">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="threads">Concurrency (Threads)</label>
+                        <input type="range" id="threads" name="threads" min="10" max="500" value="100" oninput="this.nextElementSibling.value = this.value">
+                        <output>100</output>
+                    </div>
+                    <button type="submit" id="scanBtn" class="glow-on-hover">INITIATE SCAN</button>
+                </form>
+            </section>
+
+            <section class="glass-card results-card">
+                <div class="results-header">
+                    <h2><span class="icon">📡</span> Live Results</h2>
+                    <span id="status" class="status-badge">IDLE</span>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="stats">
+                    <span>Progress: <span id="progressText">0%</span></span>
+                    <span>Found: <span id="foundCount" class="highlight">0</span></span>
+                    <span>Time: <span id="timer">0.0s</span></span>
+                </div>
+
+                <div class="results-list" id="resultsList">
+                    <!-- Results will be injected here -->
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

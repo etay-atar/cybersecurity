@@ -37,39 +37,74 @@ def scan_port(target, port):
         pass
     return None
 
-def scan_ports(target, start_port, end_port, threads):
-    print(f"Target: {Fore.GREEN}{target}{Style.RESET_ALL} | Ports: {start_port}-{end_port} | Threads: {threads}")
-    
+def scan_ports_generator(target, start_port, end_port, threads):
+    """
+    Generator that yields scan progress and results.
+    Yields dictionaries: 
+    - {'type': 'progress', 'current': n, 'total': m}
+    - {'type': 'result', 'port': p}
+    - {'type': 'complete', 'duration': d, 'open_ports': []}
+    """
     start_time = time.time()
+    ports = range(start_port, end_port + 1)
+    total_ports = len(ports)
+    completed_ports = 0
     open_ports = []
     
-    ports = range(start_port, end_port + 1)
-    
-    # Using tqdm for progress bar
     with ThreadPoolExecutor(max_workers=threads) as executor:
-        # Submit all tasks
         future_to_port = {executor.submit(scan_port, target, port): port for port in ports}
         
-        # Process results as they complete with a progress bar
-        for future in tqdm(concurrent.futures.as_completed(future_to_port), total=len(ports), desc="Scanning", unit="port"):
+        for future in concurrent.futures.as_completed(future_to_port):
             port = future_to_port[future]
+            completed_ports += 1
+            
+            # Yield progress
+            yield {'type': 'progress', 'current': completed_ports, 'total': total_ports}
+            
             try:
                 result = future.result()
                 if result:
                     open_ports.append(result)
-
-            except Exception as e:
+                    yield {'type': 'result', 'port': result}
+            except Exception:
                 pass
 
     end_time = time.time()
     duration = end_time - start_time
+    yield {'type': 'complete', 'duration': duration, 'open_ports': sorted(open_ports)}
+
+def scan_ports(target, start_port, end_port, threads):
+    """
+    CLI wrapper for the scan generator.
+    """
+    print(f"Target: {Fore.GREEN}{target}{Style.RESET_ALL} | Ports: {start_port}-{end_port} | Threads: {threads}")
+    
+    # We need to manually handle the tqdm progress bar here since we are consuming a generator
+    total_ports = end_port - start_port + 1
+    pbar = tqdm(total=total_ports, desc="Scanning", unit="port")
+    
+    open_ports = []
+    duration = 0
+    
+    for event in scan_ports_generator(target, start_port, end_port, threads):
+        if event['type'] == 'progress':
+            pbar.update(event['current'] - pbar.n)
+        elif event['type'] == 'result':
+            # port = event['port']
+            # tqdm.write(f"{Fore.GREEN}[+] Port {port} is open{Style.RESET_ALL}")
+            pass
+        elif event['type'] == 'complete':
+            open_ports = event['open_ports']
+            duration = event['duration']
+            
+    pbar.close()
 
     print("\n" + Fore.BLUE + "=" * 60)
     print(f"Scan completed in {Fore.CYAN}{duration:.2f}{Style.RESET_ALL} seconds.")
     
     if open_ports:
         print(f"Found {len(open_ports)} open ports:")
-        for port in sorted(open_ports):
+        for port in open_ports:
             print(f"  {Fore.GREEN}[+] Port {port} is open{Style.RESET_ALL}")
     else:
         print(f"{Fore.RED}No open ports found.{Style.RESET_ALL}")
